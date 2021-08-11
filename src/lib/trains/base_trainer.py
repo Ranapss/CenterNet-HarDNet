@@ -27,6 +27,8 @@ class BaseTrainer(object):
     self.optimizer = optimizer
     self.loss_stats, self.loss = self._get_losses(opt)
     self.model_with_loss = ModelWithLoss(model, self.loss)
+    #mixed precision?
+    self.scaler = torch.cuda.amp.GradScaler()
 
   def set_device(self, gpus, chunk_sizes, device):
     if len(gpus) > 1:
@@ -70,12 +72,15 @@ class BaseTrainer(object):
       for k in batch:
         if k != 'meta':
           batch[k] = batch[k].to(device=opt.device, non_blocking=True)    
-      output, loss, loss_stats = model_with_loss(batch)
-      loss = loss.mean()
+      #mixed precision?
+      with torch.cuda.amp.autocast():
+        output, loss, loss_stats = model_with_loss(batch)
+        loss = loss.mean()
       if phase == 'train':
         self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
+        self.scaler.scale(loss).backward()  #mixed precision was #loss.backward()
+        self.scaler.step(self.optimizer)                #was     #self.optimizer.step()
+        self.scaler.update()                    #added
       batch_time.update(time.time() - end)
       end = time.time()
 
