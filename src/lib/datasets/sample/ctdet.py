@@ -134,7 +134,7 @@ class CTDetDataset(data.Dataset):
     
     anns = self.coco.loadAnns(ids=ann_ids)
     img = cv2.imread(img_path)
-    
+    print(img_path)
     return self.img_transform(img, anns, flip_en=flip_en, scale_lv=scale_lv, out_shift=out_shift, crop=crop)
 
 

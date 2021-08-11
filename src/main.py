@@ -2,11 +2,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from numpy.core.numeric import indices
+from numpy.lib.function_base import _trapz_dispatcher
+
 import _init_paths
 
 import os
 
-import torch
+import torch, gc
 import torch.utils.data
 from opts import opts
 from models.model import create_model, load_model, save_model
@@ -60,14 +63,20 @@ def main(opt):
     val_loader.dataset.run_eval(preds, opt.save_dir)
     return
 
+# Rana-added by me to reduce the size of training set to speed it up
+  indices = torch.arange(100)
+  tl10 = torch.utils.data.Subset(Dataset(opt,'train'),indices)
+
   train_loader = torch.utils.data.DataLoader(
-      Dataset(opt, 'train'), 
+      tl10, 
       batch_size=opt.batch_size, 
       shuffle=True,
       num_workers=opt.num_workers,
       pin_memory=True,
       drop_last=True
   )
+
+
 
   print('Starting training...')
   best = 1e10
@@ -108,5 +117,7 @@ def main(opt):
   logger.close()
 
 if __name__ == '__main__':
+
   opt = opts().parse()
   main(opt)
+  
